@@ -6,6 +6,7 @@ const {
     deleteController,
     redirectController
 } = require('./controllers.js');
+const { authController } = require('./authController.js');
 
 const HOST = 'localhost';
 const PORT = '3000';
@@ -22,6 +23,9 @@ const server = http.createServer((req, res) => {
         return;
     } else if (req.url === '/redirect') {
         redirectController(req, res, { HOST, PORT });
+        return;
+    } else if (req.url === '/auth') {
+        authController(req, res);
         return;
     }
 

@@ -1,4 +1,7 @@
 const fs = require('fs');
+const { resolve } = require('path');
+
+const { checkAuth, sendUnauthorizedError } = require('./authController.js');
 
 const getController = function(req, res) {
     if (req.method === 'GET') {
@@ -18,18 +21,35 @@ const getController = function(req, res) {
     notAllowedMethod(req, res)
 }
 
-const postController = function(req, res) {
+const postController = async function(req, res) {
     if (req.method === 'POST') {
+        if (!checkAuth(req)) {
+            sendUnauthorizedError(res);
+            return;
+        }
+
+        const { filename, content } = await parseJSON(req);
+        createFile(filename, content);
+
         res.writeHead(200);
         res.end("post: success");
+
         return;
     }
 
     notAllowedMethod(req, res)
 }
 
-const deleteController = function(req, res) {
+const deleteController = async function(req, res) {
     if (req.method === 'DELETE') {
+        if (!checkAuth(req)) {
+            sendUnauthorizedError(res);
+            return;
+        }
+        
+        const { filename } = await parseJSON(req);
+        deleteFile(filename);
+        
         res.writeHead(200);
         res.end("delete: success");
         return;
@@ -58,6 +78,27 @@ function notAllowedMethod(req, res) {
 function getFilesList() {
     const files = fs.readdirSync('./files/');
     return files.join(',');
+}
+
+async function parseJSON(req) {
+    return new Promise(resolve => {
+        let rawdata = '';
+
+        req.on('data', chunk => {
+            rawdata += chunk;
+        });
+        req.on('end', () => {
+            resolve(JSON.parse(rawdata));
+        })
+    })
+}
+
+function createFile(filename, content) {
+    fs.writeFileSync(resolve('./files', filename), content);
+}
+
+function deleteFile(filename) {
+    fs.unlinkSync(resolve('./files', filename));
 }
 
 module.exports = {
